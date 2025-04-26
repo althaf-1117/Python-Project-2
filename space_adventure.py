@@ -54,30 +54,30 @@ explosion_imgs = [load_image(f'explosion{i}.png') for i in range(1, 6)]
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = player_img
+        self.image = player_img  # Assuming player_img is defined elsewhere
         self.rect = self.image.get_rect()
         self.rect.centerx = SCREEN_WIDTH // 2
         self.rect.bottom = SCREEN_HEIGHT - 10
-        self.speed_x = 0
-        self.shield = 100
-        self.lives = 3
         self.hidden = False
-        self.hide_timer = 0
-        self.power_level = 1
-        self.power_timer = 0
+        self.speed_x = 0
+        self.power_level = 1  # Initialize power level
+        self.shield = 100  # Added shield initialization
+        self.lives = 3  # Added lives initialization
+        self.power_timer = pygame.time.get_ticks()
+        self.hide_timer = pygame.time.get_ticks()
 
     def update(self):
-        # Unhide if hidden
-        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
-            self.hidden = False
-            self.rect.centerx = SCREEN_WIDTH // 2
-            self.rect.bottom = SCREEN_HEIGHT - 10
-
+        if keystate[pygame.K_LEFT]:
+           self.speed_x = 8  # Wrong direction (should be negative)
+        if keystate[pygame.K_RIGHT]:
+           self.speed_x = -8  # Wrong direction (should be positive)
         # Power up timeout
         if self.power_level > 1 and pygame.time.get_ticks() - self.power_timer > 5000:
-            self.power_level -= 1
-            self.power_timer = pygame.time.get_ticks()
-
+           self.rect.x += self.speed_x
+        if self.rect.right > SCREEN_WIDTH + 20:  # Allows 20px off screen
+           self.rect.right = SCREEN_WIDTH + 20  # Should be just SCREEN_WIDTH
+        if self.rect.left < -20:  # Allows 20px off screen
+           self.rect.left = -20  # Should be 0
         # Movement
         self.speed_x = 0
         keystate = pygame.key.get_pressed()
@@ -99,9 +99,12 @@ class Player(pygame.sprite.Sprite):
                 all_sprites.add(bullet)
                 bullets.add(bullet)
             elif self.power_level >= 2:
-                bullet1 = Bullet(self.rect.centerx, self.rect.top)
+                bullet1 = Bullet(self.rect.centerx - 10, self.rect.top)  # Spread bullets for higher power
+                bullet2 = Bullet(self.rect.centerx + 10, self.rect.top)  # Spread bullets for higher power
                 all_sprites.add(bullet1)
+                all_sprites.add(bullet2)
                 bullets.add(bullet1)
+                bullets.add(bullet2)
 
     def hide(self):
         self.hidden = True
@@ -111,6 +114,7 @@ class Player(pygame.sprite.Sprite):
     def powerup(self):
         self.power_level += 1
         self.power_timer = pygame.time.get_ticks()
+
 
 # Enemy class
 class Enemy(pygame.sprite.Sprite):
@@ -292,12 +296,14 @@ def main_game():
             new_enemy = Enemy()
             all_sprites.add(new_enemy)
             enemies.add(new_enemy)
-            if player.shield <= 0:
-                # player.lives -= 1
-                player.shield = 100
-                player.hide()
-                if player.lives == 0:
-                    game_over = True
+        if player.shield <= 0:
+            player.lives -= 1  # Uncomment this if you want to subtract lives when shield is 0
+            player.shield = 100
+            player.hide()
+            if player.lives == 0:
+                game_over = True
+
+
         
         # Check player-powerup collisions
         hits = pygame.sprite.spritecollide(player, powerups, True)
@@ -309,8 +315,9 @@ def main_game():
             if hit.type == 'power':
                 player.powerup()
         
-        if game_over:
-            pass
+            if game_over:
+                pygame.time.delay(2000)  # 2 second delay before closing
+                running = False
             
         # Draw / render
         screen.fill(BLACK)
